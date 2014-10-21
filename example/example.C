@@ -25,13 +25,12 @@
 
 void example(){
  TH1D::SetDefaultSumw2(); 
+ bool doPPtracking=true;
  
- //input file
- //TString directory="/mnt/hadoop/cms/store/user/yenjie/HiForest_v27/";
- // TString infname="Dijet100_HydjetDrum_v27_mergedV1";
- TString algo="ak3Calo";
- 
- int npthat=4;
+ TString tracking;
+ if(doPPtracking) tracking="pp";
+ else tracking="HI";
+ TString algo=Form("ak3Calo_2014_10_21_%stracking",tracking.Data());
  
  TString infname[npthat];
  ppTrack * ftrk[npthat];
@@ -39,17 +38,38 @@ void example(){
  skimTree_pp * fskim[npthat];
  t * fjet[npthat];
  
- int pthat[]={50,80,120,170,9999};
- double wpthat[]={0.637468,5.96835e-02,6.34944e-03,7.11711e-04};
+ int npthat;
 
- TString directory="root://eoscms//eos/cms/store/caf/user/dgulhan/PYTHIA/prod22_ppTracking/";
+ int pthat[]={30,50,80,120,170,220,280,370,9999};
+ double wpthat_pptracking[]={0.786183,0.0755865,0.00837536,0.00101997,0.00017521};
+ double wpthat_HItracking[]={0.372166,0.0243365,0.00304998,0.000426838,4.92824e-05,8.79673e-06,1.7353e-06,2.92439e-07};
 
- for(int ipthat=0;ipthat<npthat;ipthat++){
-  infname[ipthat]=Form("pt%d_pp2013_P01_prod22_v81_merged_forest_0",pthat[ipthat]);
- }
-
- TString dataset ="pp2013_P01_prod22_v81_merged_forest_0";
+ TString directory,dataset;
  
+ if(doPPtracking){ 
+  npthat=5;
+  for(int ipthat=0;ipthat<npthat;ipthat++){
+   wpthat[i]=wpthat_pp[i];
+  }
+  pthat[npthat]=9999;
+  directory="root://eoscms//eos/cms/store/group/phys_heavyions/dgulhan/PYTHIA_PPForest_HIReco/";
+  for(int ipthat=0;ipthat<npthat;ipthat++){
+   infname[ipthat]=Form("PYTHIA_PPForest_HIReco_pthat%d_merged_forest_0",pthat[ipthat]);
+  }
+  dataset ="PYTHIA_PPForest_HIReco";
+ }else{
+  npthat=8;
+  for(int ipthat=0;ipthat<npthat;ipthat++){
+   wpthat[i]=wpthat_HItracking[i];
+  }
+  pthat[npthat]=9999;
+  
+  directory="root://eoscms//eos/cms/store/group/phys_heavyions/dgulhan/Prod_PYTHIA_localdb_ppJEC_merged/";
+  for(int ipthat=0;ipthat<npthat;ipthat++){
+   infname[ipthat]=Form("HiForest_Private_PYTHIA_localdb_ppJEC_pthat%d_merged_forest_0",pthat[ipthat]);
+  }
+  dataset ="HiForest_Private_PYTHIA_localdb_ppJEC";
+ }
 
  //pt bins for track efficiency correction
  int npt_eff=4;
@@ -59,18 +79,13 @@ void example(){
  int npt_fake=4;
  double ptmin_fake[]={0.5, 1, 3,  8};
  double ptmax_fake[]={  1, 3, 8,300}; 
- cout<<1<<endl;
  TFile *f_multrec;
  f_multrec= new TFile(Form("../%s/multRec/multiplereco_pp.root",algo.Data()));
  TFile *f_secondary;
  f_secondary= new TFile(Form("../%s/secondary/secondary_pp.root",algo.Data()));
-  cout<<2<<endl;
 
  TH2D * hsecondary = (TH2D*)f_secondary->Get("hpt_eta"); 
- cout<<3<<endl;
-
- TH2D * hmultrec = (TH2D*)f_multrec->Get("heta_pt");
- cout<<4<<endl;
+ TH2D * hmultrec = (TH2D*)f_multrec->Get("hpt_eta");
 
  //getting histograms for track efficiency correction 
  TFile *f_eff[npt_eff];
@@ -79,39 +94,22 @@ void example(){
  TProfile *p_eff_rmin[npt_eff]; 
  for(int ipt=0; ipt<npt_eff;ipt++){
    f_eff[ipt]= new TFile(Form("../%s/eff/eff_pt%d_%d_%s_dogenjet0.root",algo.Data(),(int)ptmin_eff[ipt],(int)ptmax_eff[ipt],algo.Data()));
-      cout<<5<<endl;
-
    p_eff_pt[ipt]=(TProfile*)f_eff[ipt]->Get("p_eff_pt");
-      cout<<6<<endl;
-
    p_eff_accept[ipt]=(TProfile2D*)f_eff[ipt]->Get("p_eff_acceptance");
    p_eff_rmin[ipt]=(TProfile*)f_eff[ipt]->Get("p_eff_rmin");
  }
-   cout<<7<<endl;
 
  TFile *f_fake[npt_fake];
  TProfile2D *p_fake_accept[npt_fake]; 
  TProfile *p_fake_pt[npt_fake]; 
  TProfile *p_fake_rmin[npt_fake]; 
  for(int ipt=0; ipt<npt_fake;ipt++){
-    cout<<8<<endl;
-
    f_fake[ipt]= new TFile(Form("../%s/fake/fake_pt%d_%d_%s_dogenjet0.root",algo.Data(),(int)ptmin_eff[ipt],(int)ptmax_eff[ipt],algo.Data()));   
-   cout<<9<<endl;
-
    p_fake_pt[ipt]=(TProfile*)f_fake[ipt]->Get("p_fake_pt");
-      cout<<10<<endl;
-
    p_fake_accept[ipt]=(TProfile2D*)f_fake[ipt]->Get("p_fake_acceptance");
-         cout<<11<<endl;
-
    p_fake_rmin[ipt]=(TProfile*)f_fake[ipt]->Get("p_fake_rmin");
-            cout<<12<<endl;
-
  }
-  cout<<5<<endl;
 
- //output file and tree
  TFile *outf= new TFile(Form("track_ntuple_%s_%s_testforfake_20140319.root",infname[0].Data(),algo.Data()),"recreate");
  std::string particleVars="pt:matchedpt:eta:phi:rmin:trackselect:eff:pNRec:weight";
 
@@ -129,7 +127,6 @@ void example(){
  fjet[ifile] = new t(Form("%s/%s.root",directory.Data(),infname[ifile].Data()),algo);
  int nentries = ftrk[ifile]->GetEntriesFast();
  for(int jentry=0;jentry<nentries;jentry++){
- // for(int jentry=0;jentry<50000;jentry++){
   if((jentry%1000)==0) std::cout<<jentry<<"/"<<nentries<<std::endl;
 
   ftrk[ifile]->GetEntry(jentry);
@@ -139,8 +136,6 @@ void example(){
   if(!(fskim[ifile]->pPAcollisionEventSelectionPA && fabs(fhi[ifile]->vz)<15)) continue;
   //loop over tracks
   float weight=0;
-  cout<<6<<endl;
-    cout<<7<<endl;
 
   for(int ipthat=0;ipthat<npthat;ipthat++){
    if(fjet[ifile]->pthat<pthat[ipthat+1] && fjet[ifile]->pthat>=pthat[ipthat])weight=wpthat[ipthat];
@@ -152,7 +147,6 @@ void example(){
    if(fabs(eta)>2.4) continue; //acceptance of the tracker
    float pt=ftrk[ifile]->pPt[itrk];
    if(pt<0.5) continue;
-   // if(pt<0.5 || pt>20) continue; //acceptance of the tracker
    float mpt=ftrk[ifile]->mtrkPt[itrk];
    float phi=ftrk[ifile]->pPhi[itrk];
    float rmin=99;
@@ -173,7 +167,7 @@ void example(){
     if(pt>=ptmin_eff[ipt] && pt<ptmax_eff[ipt]){
       eff_pt=p_eff_pt[ipt]->GetBinContent(p_eff_pt[ipt]->FindBin(pt));
       eff_accept=p_eff_accept[ipt]->GetBinContent(p_eff_accept[ipt]->GetXaxis()->FindBin(phi),p_eff_accept[ipt]->GetYaxis()->FindBin(eta));
-      if(rmin<3)eff_rmin=p_eff_rmin[ipt]->GetBinContent(p_eff_rmin[ipt]->FindBin(rmin));//efficiency for rmin>3 is 1. 
+      if(rmin<3)eff_rmin=p_eff_rmin[ipt]->GetBinContent(p_eff_rmin[ipt]->FindBin(rmin));
      }     
    } 
 
@@ -216,7 +210,7 @@ void example(){
     if(pt>=ptmin_eff[ipt] && pt<ptmax_eff[ipt]){
       eff_pt=p_eff_pt[ipt]->GetBinContent(p_eff_pt[ipt]->FindBin(pt));
       eff_accept=p_eff_accept[ipt]->GetBinContent(p_eff_accept[ipt]->GetXaxis()->FindBin(phi),p_eff_accept[ipt]->GetYaxis()->FindBin(eta));
-      eff_rmin=p_eff_rmin[ipt]->GetBinContent(p_eff_rmin[ipt]->FindBin(rmin));//efficiency for rmin>3 is 1. 
+      eff_rmin=p_eff_rmin[ipt]->GetBinContent(p_eff_rmin[ipt]->FindBin(rmin));
      }     
    } 
    
@@ -245,7 +239,7 @@ void example(){
    float secondary=0;
    secondary=hsecondary->GetBinContent(hsecondary->FindBin(pt,eta));
    
-   float correction=(1-secondary)*(1-fake)/(eff);
+   float correction=(1-secondary)*(1-fake)/((eff)*(1+multrec));
    //fill in the output tree
    float entry[]={pt,eta,phi,rmin,trackselect,trackstatus,eff,trkfake,fake,weight,multrec,secondary};
    nt_track->Fill(entry);
@@ -253,7 +247,8 @@ void example(){
  }
  }
  outf->cd();
-  nt_track->Write();
-  nt_particle->Write();
-  outf->Close();
+ nt_track->Write();
+ nt_particle->Write();
+ outf->Close();
+
 }
